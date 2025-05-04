@@ -45,7 +45,6 @@ def scalar_mult(k, u):
 
     z_2_inv = mod_inv(z_2)
     return (x_2 * z_2_inv) % PRIME
-
 # --------------------------------------------------------------
 # Function to generate a private key
 def generate_private_key():
@@ -76,4 +75,21 @@ bob_shared_secret = generate_shared_secret(bob_private, alice_public)
 # --------------------------------------------------------------
 # Both parties should derive the same shared secret
 assert alice_shared_secret == bob_shared_secret
+
+
+
+
+"""
+The public key is generated from the private key through scalar multiplication on the elliptic curve. 
+Specifically, a fixed base point is used for this scalar multiplication (for X25519, this base point has a coordinate of 9). 
+This means that the public key is obtained by multiplying the base point by the private key scalar.
+Alice computes the shared secret using Bob's public key
+SharedSecret_A =  A_sk * B_pk
+Bob computes the shared secret using Alice's public key
+SharedSecret_B =  B_sk * A_pk
+Bob computes the shared secret using Alice's public key:
+SharedSecret_B = B_sk * A_pk
+Due to the properties of elliptic curve multiplication, SharedSecret_A and SharedSecret_B will be equal. 
+This property allows both parties to establish a common secret even over an insecure channel.
+"""
 print("Shared secret matches:", alice_shared_secret)
