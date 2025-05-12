@@ -58,3 +58,92 @@ cv2.imshow("Image 1 with Landmarks", image1)
 cv2.imshow("Image 2 with Landmarks", image2)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
+
+
+
+
+
+
+
+
+
+import cv2
+import numpy as np
+import dlib
+# ----------------- 人脸检测和特征点提取 -----------------
+def get_landmarks(image, detector, predictor):
+    faces = detector(image, 1)
+    if len(faces) == 0:
+        raise Exception("No face detected in image.")
+    landmarks = predictor(image, faces[0])
+    landmarks_points = []
+    for part in landmarks.parts():
+        landmarks_points.append((part.x, part.y))
+    return np.array(landmarks_points)
+# ----------------- 仿射变换 -----------------
+def apply_affine_transform(src, src_tri, dst_tri, size):
+    warp_matrix = cv2.getAffineTransform(np.float32(src_tri), np.float32(dst_tri))
+    dst = cv2.warpAffine(src, warp_matrix, size, None, flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT_101)
+    return dst
+# ----------------- 三角形区域变换 -----------------
+def warp_triangle(img_source, img_target, tri_source, tri_target):
+    bounding_rect_source = cv2.boundingRect(np.float32([tri_source]))
+    bounding_rect_target = cv2.boundingRect(np.float32([tri_target]))
+    tri_source_rect = []
+    tri_target_rect = []
+    tri_target_rect_int = []
+    for i in range(3):
+        tri_source_rect.append((tri_source[i] [0] - bounding_rect_source[0], tri_source[i] [#citation-1](citation-1) - bounding_rect_source[#citation-1](citation-1)))
+        tri_target_rect.append((tri_target[i] [0] - bounding_rect_target[0], tri_target[i] [#citation-1](citation-1) - bounding_rect_target[#citation-1](citation-1)))
+        tri_target_rect_int.append((int(tri_target[i] [0] - bounding_rect_target[0]), int(tri_target[i] [#citation-1](citation-1) - bounding_rect_target[#citation-1](citation-1))))
+    mask = np.zeros((bounding_rect_target[#citation-3](citation-3), bounding_rect_target[#citation-2](citation-2), 3), dtype=np.float32)
+    cv2.fillConvexPoly(mask, np.int32(tri_target_rect_int), (1.0, 1.0, 1.0), 16, 0)
+    img_source_rect = img_source[bounding_rect_source[#citation-1](citation-1):bounding_rect_source[#citation-1](citation-1) + bounding_rect_source[#citation-3](citation-3), bounding_rect_source[0]:bounding_rect_source[0] + bounding_rect_source[#citation-2](citation-2)]
+    size = (bounding_rect_target[#citation-2](citation-2), bounding_rect_target[#citation-3](citation-3))
+    img_target_rect = apply_affine_transform(img_source_rect, tri_source_rect, tri_target_rect, size)
+    img_target_rect = img_target_rect * mask
+    img_target[bounding_rect_target[#citation-1](citation-1):bounding_rect_target[#citation-1](citation-1) + bounding_rect_target[#citation-3](citation-3), 
+               bounding_rect_target[0]:bounding_rect_target[0] + bounding_rect_target[#citation-2](citation-2)] = img_target_rect + img_target[bounding_rect_target[#citation-1](citation-1):bounding_rect_target[#citation-1](citation-1) + bounding_rect_target[#citation-3](citation-3), bounding_rect_target[0]:bounding_rect_target[0] + bounding_rect_target[#citation-2](citation-2)] * (1 - mask)
+# ----------------- 面部交换 -----------------
+def swap_faces(image_source, image_target, landmarks_source, landmarks_target):
+    hull_index = cv2.convexHull(np.array(landmarks_target), returnPoints=False)
+    hull_source = [landmarks_source[int(idx)] for idx in hull_index.squeeze()]
+    hull_target = [landmarks_target[int(idx)] for idx in hull_index.squeeze()]
+    rect = cv2.boundingRect(np.float32([hull_target]))
+    subdivide = cv2.Subdiv2D(rect)
+    subdivide.insert(hull_target)
+    triangles = subdivide.getTriangleList()
+    triangles = np.array(triangles, dtype=np.int32)
+    for triangle in triangles:
+        indices = []
+        for i in range(0, 6, 2):
+            for j in range(len(landmarks_target)):
+                if (landmarks_target[j] [0] == triangle[i]) and (landmarks_target[j] [#citation-1](citation-1) == triangle[i + 1]):
+                    indices.append(j)
+        if len(indices) == 3:
+            tri_src = [hull_source[i] for i in indices]
+            tri_tgt = [hull_target[i] for i in indices]
+            warp_triangle(image_source, image_target, tri_src, tri_tgt)
+    mask = np.zeros_like(image_target, dtype=np.uint8)
+    cv2.fillConvexPoly(mask, np.int32(hull_target), (255, 255, 255))
+    bounding_rect = cv2.boundingRect(np.float32([hull_target]))
+    center = ((bounding_rect[0] + bounding_rect[0] + bounding_rect[#citation-2](citation-2)) // 2, (bounding_rect[#citation-1](citation-1) + bounding_rect[#citation-1](citation-1) + bounding_rect[#citation-3](citation-3)) // 2)
+    # 使用泊松融合进行脸部合成
+    output_image = cv2.seamlessClone(np.uint8(image_target), image_target, mask, center, cv2.NORMAL_CLONE)
+    return output_image
+# ----------------- 主流程 -----------------
+# 加载模型
+detector = dlib.get_frontal_face_detector()
+predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+# 加载图像
+image1 = cv2.imread("face1.jpg")
+image2 = cv2.imread("face2.jpg")
+# 获取特征点
+landmarks1 = get_landmarks(image1, detector, predictor)
+landmarks2 = get_landmarks(image2, detector, predictor)
+# 进行面部交换
+output_image = swap_faces(image1, image2, landmarks1, landmarks2)
+# 显示换脸结果
+cv2.imshow("Swapped Face with Blending", output_image)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
