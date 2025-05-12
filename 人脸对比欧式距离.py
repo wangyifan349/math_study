@@ -147,3 +147,17 @@ output_image = swap_faces(image1, image2, landmarks1, landmarks2)
 cv2.imshow("Swapped Face with Blending", output_image)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
+"""
+    面部轮廓：1-17（共17个点）
+    左眉毛：18-22（共5个点）
+    右眉毛：23-27（共5个点）
+    鼻梁：28-31（共4个点）
+    鼻子底部：32-36（共5个点）
+    左眼：37-42（共6个点）
+    右眼：43-48（共6个点）
+    上唇：49-55（共7个点）
+    下唇：55-60（共6个点）
+    内唇：61-68（共8个点）
+dlib 的 68 个面部特征点模型来为人脸检测进行特征点提取。
+"""
+              
