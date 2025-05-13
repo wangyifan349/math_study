@@ -250,3 +250,165 @@ for point in critical_points:
         max_min = "拐点"
     print(f"x = {point}: {max_min}, 二阶导数 = {concavity}")
 print("————————————————————————\n")
+
+
+
+
+import sympy as sp
+
+# 定义符号变量
+x = sp.symbols('x')
+
+# ================================
+# 1. 向量运算
+# ================================
+
+v1 = sp.Matrix([2, -1, 4])
+v2 = sp.Matrix([1, 3, 2])
+
+print("1. 向量运算\n")
+
+# 向量加法
+v_add = v1 + v2
+print("向量 v1 + v2 =")
+sp.pprint(v_add)
+
+# 向量点积
+v_dot = v1.dot(v2)
+print("向量 v1 ⋅ v2 =")
+print(v_dot)
+
+# 向量叉积
+v_cross = v1.cross(v2)
+print("向量 v1 x v2 =")
+sp.pprint(v_cross)
+
+print("——————————————————————————\n")
+
+# ================================
+# 2. 基本矩阵运算
+# ================================
+
+A = sp.Matrix([[4, 2], [1, 3]])
+B = sp.Matrix([[0, -1], [2, 1]])
+
+print("2. 基本矩阵运算\n")
+
+# 矩阵加法
+matrix_add = A + B
+print("A + B =")
+sp.pprint(matrix_add)
+
+# 矩阵乘法
+matrix_mult = A * B
+print("A * B =")
+sp.pprint(matrix_mult)
+
+# 矩阵转置
+A_transpose = A.transpose()
+print("A 的转置 =")
+sp.pprint(A_transpose)
+
+print("——————————————————————————\n")
+
+# ================================
+# 3. 行列式与逆矩阵
+# ================================
+
+print("3. 行列式与逆矩阵\n")
+
+# 行列式
+det_A = A.det()
+print("A 的行列式 det(A) =")
+print(det_A)
+
+# 逆矩阵
+if det_A != 0:
+    A_inv = A.inv()
+    print("A 的逆矩阵 A^(-1) =")
+    sp.pprint(A_inv)
+else:
+    print("A 不可逆。")
+
+print("——————————————————————————\n")
+
+# ================================
+# 4. 特征值与特征向量
+# ================================
+
+print("4. 特征值与特征向量\n")
+
+eigenvals = A.eigenvals()
+print("特征值:")
+sp.pprint(eigenvals)
+
+eigenvects = A.eigenvects()
+for val, mult, vects in eigenvects:
+    print(f"\n特征值: {val} (重数: {mult})")
+    for vect in vects:
+        norm_vect = vect / vect.norm()
+        print("特征向量 (归一化):")
+        sp.pprint(norm_vect)
+
+print("——————————————————————————\n")
+
+# ================================
+# 5. 矩阵分解
+# ================================
+
+print("5. 矩阵分解\n")
+
+P, L, U = A.LUdecomposition()
+print("LU 分解:")
+print("P 矩阵 =")
+sp.pprint(P)
+print("L 矩阵 =")
+sp.pprint(L)
+print("U 矩阵 =")
+sp.pprint(U)
+
+Q, R = A.QRdecomposition()
+print("\nQR 分解:")
+print("Q 矩阵 =")
+sp.pprint(Q)
+print("R 矩阵 =")
+sp.pprint(R)
+
+print("——————————————————————————\n")
+
+# ================================
+# 6. 伴随矩阵与代数余子式
+# ================================
+
+print("6. 伴随矩阵与代数余子式\n")
+
+# 伴随矩阵
+adjugate_A = A.adjugate()
+print("A 的伴随矩阵 =")
+sp.pprint(adjugate_A)
+
+# 代数余子式
+minor_11 = A.minor(0, 0)
+cofactor_11 = A.cofactor(0, 0)
+print("\nA 的 (1,1) 元素的代数余子式: ")
+print(f"余子式 = {minor_11}, 代数余子式 = {cofactor_11}")
+
+print("——————————————————————————\n")
+
+# ================================
+# 7. 矩阵的秩与迹
+# ================================
+
+print("7. 矩阵的秩与迹\n")
+
+# 矩阵的秩
+rank_A = A.rank()
+print("A 的秩 (rank) =")
+print(rank_A)
+
+# 矩阵的迹
+trace_A = A.trace()
+print("A 的迹 (trace) =")
+print(trace_A)
+
+print("——————————————————————————\n")
