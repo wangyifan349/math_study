@@ -247,6 +247,55 @@ print(f"Euclidean distance: {euc_distance}")
 
 
 
+def compute_prefix_function(pattern):
+    """
+    创建部分匹配表（前缀函数）。
+    这个函数为KMP算法计算"失配数组"。
+    """
+    m = len(pattern)
+    prefix_function = [0] * m
+    j = 0  # 长度为j的最长前缀
+    # 从第二个字符开始
+    for i in range(1, m):
+        # 不匹配时，回退到前一个最长前缀结尾
+        while j > 0 and pattern[i] != pattern[j]:
+            j = prefix_function[j - 1]
+            print(f"不匹配回退: j = {j}")
+        # 如果匹配，增加最长前缀的长度
+        if pattern[i] == pattern[j]:
+            j += 1
+        prefix_function[i] = j
+        print(f"计算prefix_function[{i}]: {prefix_function[i]} (根据pattern中的最长前缀)")
+    return prefix_function
 
+def kmp_search(text, pattern):
+    """
+    在文本text中查找模式pattern出现的位置。
+    输出模式开始的所有位置。
+    """
+    n = len(text)
+    m = len(pattern)
+    prefix_function = compute_prefix_function(pattern)
+    j = 0  # 模式中的位置索引
+    print(f"\n开始KMP搜索。文本长度: {n}，模式长度: {m}")
+    for i in range(n):
+        # 当字符不匹配时，使用部分匹配表进行跳跃
+        while j > 0 and text[i] != pattern[j]:
+            j = prefix_function[j - 1]
+            print(f"字符不匹配，使用部分匹配表跳跃：j = {j}")
+        # 如果找到匹配
+        if text[i] == pattern[j]:
+            j += 1
+        # 如果整个模式匹配，输出位置
+        if j == m:
+            print(f"模式匹配开始位置: {i - m + 1}")
+            j = prefix_function[j - 1]  # 准备寻找下一个可能的匹配
+# 示例使用
+text = "ababcabcabababd"
+pattern = "ababd"
+print("计算前缀函数（部分匹配表）：")
+prefix_function = compute_prefix_function(pattern)
+print(f"部分匹配表: {prefix_function}\n")
+kmp_search(text, pattern)
 
 
