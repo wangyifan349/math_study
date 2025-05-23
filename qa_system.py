@@ -1,6 +1,9 @@
+import os
+import pickle
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+# 问答对，key是问题，value是答案内容
 qa_pairs = {
     "What is a paramecium?": (
         "A paramecium is a single-celled organism found primarily in freshwater environments. "
@@ -39,37 +42,64 @@ qa_pairs = {
     )
 }
 
+# 保存文件路径
+vectorizer_filepath = "vectorizer.pkl"
+tf_matrix_filepath = "tf_matrix.pkl"
 
-# Extract questions as a list for vectorization
+# 提取问题列表（顺序一定，确保对应tf_matrix行顺序不变）
 questions = list(qa_pairs.keys())
-# Vectorize the questions for cosine similarity calculations
-vectorizer = CountVectorizer()
-tf_matrix = vectorizer.fit_transform(questions)
-# Inform the user about the system
-print("This is a simple Q&A system. Type 'exit' to quit.")
+
+# 载入CountVectorizer和tf_matrix，如果有就加载，没有就新建后保存
+if os.path.exists(vectorizer_filepath) and os.path.exists(tf_matrix_filepath):
+    # 加载已保存的vectorizer
+    with open(vectorizer_filepath, "rb") as f:
+        vectorizer = pickle.load(f)
+    # 加载已保存的tf_matrix（稀疏矩阵）
+    with open(tf_matrix_filepath, "rb") as f:
+        tf_matrix = pickle.load(f)
+else:
+    # 没有保存文件，训练新的vectorizer和tf_matrix
+    vectorizer = CountVectorizer()
+    tf_matrix = vectorizer.fit_transform(questions)
+    # 保存vectorizer和tf_matrix
+    with open(vectorizer_filepath, "wb") as f:
+        pickle.dump(vectorizer, f)
+    with open(tf_matrix_filepath, "wb") as f:
+        pickle.dump(tf_matrix, f)
+
+print("这是一个简单的问答系统。输入 'exit' 退出。")
+
 while True:
-    # Get user query
-    query = input("You: ")
+    query = input("你：").strip()
     if query.lower() == "exit":
-        # If user types 'exit', break the loop
-        print("Exiting the Q&A system. Goodbye!")
+        print("退出问答系统。再见！")
         break
-    # Transform the query into the same vector space
+
+    if not query:
+        print("请输入有效的问题。")
+        continue
+
+    # 使用加载或训练好的vectorizer直接转换query
     query_vector = vectorizer.transform([query])
-    # Compute cosine similarities between the query and all questions
-    cosine_similarities = cosine_similarity(query_vector, tf_matrix)
-    # Flatten the similarities array for ease of processing
-    similarities = cosine_similarities.flatten()
-    # Find index of the maximum similarity
-    most_similar_question_index = similarities.argmax()
-    # Retrieve the most similar question and associated response
-    similar_question = questions[most_similar_question_index]
-    response = qa_pairs[similar_question]
-    # Output all cosine similarity scores for informational purposes
-    print("\nSimilarity scores:")
+
+    # 计算query与所有问题的余弦相似度
+    cosine_similarities = cosine_similarity(query_vector, tf_matrix).flatten()
+
+    max_sim_index = cosine_similarities.argmax()
+    max_sim_value = cosine_similarities[max_sim_index]
+
+    similarity_threshold = 0.2  # 阈值可根据需求调整
+
+    print("\n相似度得分：")
     for i, question in enumerate(questions):
-        print(f"  '{question}': {similarities[i]:.4f}")
-    # Output the response based on the highest similarity
-    print(f"\nBot (similar to '{similar_question}'):")
-    print(response)
-    print("\n" + "-"*50)
+        print(f"  '{question}': {cosine_similarities[i]:.4f}")
+
+    if max_sim_value < similarity_threshold:
+        print("\n抱歉，未能找到合适的答案。请尝试换个问法。")
+    else:
+        matched_question = questions[max_sim_index]
+        answer = qa_pairs[matched_question]
+        print(f"\n机器人（最相似问题：'{matched_question}'，相似度：{max_sim_value:.4f}）：")
+        print(answer)
+
+    print("\n" + "-"*60)
