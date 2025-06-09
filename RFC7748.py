@@ -166,3 +166,110 @@ if __name__ == "__main__":
 
     # 验证RFC7748官方测试向量
     _test_vectors()
+
+
+
+
+
+
+
+
+
+ import os
+
+# 定义素数 p = 2^255 - 19
+p = 2**255 - 19
+
+# 蒙哥马利曲线参数
+A24 = 121665
+
+def clamp_scalar(scalar):
+    """根据 RFC 7748 对标量进行裁剪"""
+    scalar = bytearray(scalar)
+    scalar[0] &= 248
+    scalar[31] &= 127
+    scalar[31] |= 64
+    return scalar
+
+def x25519(scalar, u):
+    """x25519 主函数，计算标量乘法"""
+    scalar = clamp_scalar(scalar)
+
+    # 将输入的 u 转换为整数
+    x1 = int.from_bytes(u, 'little')
+    x2 = 1
+    z2 = 0
+    x3 = x1
+    z3 = 1
+    swap = 0
+
+    # 将标量转换为比特数组（从最高位开始）
+    scalar_bits = []
+    for byte in reversed(scalar):
+        for i in range(8):
+            scalar_bits.append((byte >> i) & 1)
+
+    # 蒙哥马利梯形算法
+    for t in range(255, -1, -1):
+        k_t = scalar_bits[t]
+        swap ^= k_t
+        if swap:
+            x2, x3 = x3, x2
+            z2, z3 = z3, z2
+        swap = k_t
+
+        # 运算步骤
+        A = (x2 + z2) % p
+        AA = pow(A, 2, p)
+        B = (x2 - z2) % p
+        BB = pow(B, 2, p)
+        E = (AA - BB) % p
+        C = (x3 + z3) % p
+        D = (x3 - z3) % p
+        DA = (D * A) % p
+        CB = (C * B) % p
+        x3 = pow((DA + CB) % p, 2, p)
+        z3 = (x1 * pow((DA - CB) % p, 2, p)) % p
+        x2 = (AA * BB) % p
+        z2 = (E * ((AA + A24 * E) % p)) % p
+
+    if swap:
+        x2, x3 = x3, x2
+        z2, z3 = z3, z2
+
+    # 计算结果：x2 / z2
+    result = (x2 * pow(z2, p - 2, p)) % p
+    return result.to_bytes(32, 'little')
+
+def generate_private_key():
+    """生成一个 32 字节的私钥"""
+    return os.urandom(32)
+
+def generate_public_key(private_key):
+    """根据私钥生成公钥"""
+    base_point = (9).to_bytes(32, 'little')
+    return x25519(private_key, base_point)
+
+def shared_secret(private_key, peer_public_key):
+    """计算共享密钥"""
+    return x25519(private_key, peer_public_key)
+
+# 示例用法
+if __name__ == "__main__":
+    # 生成 Alice 的密钥对
+    alice_private_key = generate_private_key()
+    alice_public_key = generate_public_key(alice_private_key)
+
+    # 生成 Bob 的密钥对
+    bob_private_key = generate_private_key()
+    bob_public_key = generate_public_key(bob_private_key)
+
+    # 计算共享密钥
+    alice_shared_secret = shared_secret(alice_private_key, bob_public_key)
+    bob_shared_secret = shared_secret(bob_private_key, alice_public_key)
+
+    # 验证共享密钥是否一致
+    assert alice_shared_secret == bob_shared_secret
+    print("共享密钥成功计算并匹配！")                        
+
+                        
